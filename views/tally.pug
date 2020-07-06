@@ -1,0 +1,119 @@
+doctype html
+html
+  head
+    title= title
+    meta(name='viewport',content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0')
+  body
+    nav.navbar-expand.fixed-top.navbar-dark.bg-dark.justify-content-between
+        .camSelectArea
+            select#cameraSelection
+
+    section.viewport-frame
+        .view#viewTally
+            #viewTallyRenderer
+        
+    link(rel="stylesheet", href="/css/bootstrap.min.css")
+    link(rel="stylesheet", href="/css/style.min.css")
+
+
+    script(src="/js/socket.io.js")
+    script(src="https://code.jquery.com/jquery-3.4.1.min.js")
+    script.
+        var lastUpdate = {};
+        var camSelection = "ALL";
+        var programColor = "#FF0000";
+        var previewColor = "#00FF00";
+
+        function updateTallyColor() {
+            $('.tally').css('background', '#333333'); // Reset all to black first
+            $(".tally[data-tally-state='preview']").css('background', previewColor);
+            $(".tally[data-tally-state='program']").css('background', programColor);
+        }
+
+        function bindCameraButtons() {
+            $('.tally-multi').click(function(cam) {
+                var sid = $(this).data('sid');
+                $('#cameraSelection').val(sid);
+                $('#cameraSelection').change();
+            });
+            $('.tally-single').click(function(cam) {
+                $('#cameraSelection').val("ALL");
+                $('#cameraSelection').change();
+            });
+        }
+
+
+        function updateTally() {
+            console.log("Updating UI");
+            $("#viewTallyRenderer").html('');
+            $("#viewTallyRenderer").removeClass('viewSingleTally viewMultiTally');
+
+            if (camSelection === "ALL") {
+                if (lastUpdate && lastUpdate.availableCameras && lastUpdate.availableCameras.length > 0) {
+                    $("#viewTallyRenderer").addClass('viewMultiTally');
+                    $.each(lastUpdate.availableCameras, function(key, value) {
+                        $("#viewTallyRenderer").append($('<div/>',{
+                            class: "tally tally-multi",
+                            'data-sid': value.sourceID,
+                            'data-cid': value.sourceID.split('_')[1],
+                            'data-tally-state': (value.sourceID.split('_')[1] == lastUpdate.programSourceId) ? 'program' : ((value.sourceID.split('_')[1] == lastUpdate.previewSourceId) ? 'preview': 'inactive'),
+                            'data-abbreviation': value.abbreviation,
+                            'data-name': value.name
+                        }))
+                    });
+                    $('.tally-multi').each(function(i, obj) {
+                        $(obj).append('<span class="tallyCameraId">' + $(obj).attr('data-cid') + '</span>');
+                        $(obj).append('<span class="tallyCameraLabel">' + $(obj).attr('data-abbreviation') + '</span>');
+                    });
+                }
+            } else {
+                $("#viewTallyRenderer").addClass('viewSingleTally');
+                $.each(lastUpdate.availableCameras, function(key, value) {
+                    if (camSelection == value.sourceID) {
+                        $("#viewTallyRenderer").append($('<div/>',{
+                            class: "tally tally-single",
+                            'data-sid': value.sourceID,
+                            'data-cid': value.sourceID.split('_')[1],
+                            'data-tally-state': (value.sourceID.split('_')[1] == lastUpdate.programSourceId) ? 'program' : ((value.sourceID.split('_')[1] == lastUpdate.previewSourceId) ? 'preview': 'inactive'),
+                            'data-abbreviation': value.abbreviation,
+                            'data-name': value.name
+                        }))
+                    }
+                });
+                $('.tally-single').each(function(i, obj) {
+                    $(obj).append('<span class="tallyCameraId">' + $(obj).attr('data-cid') + '</span>');
+                    $(obj).append('<span class="tallyCameraLabel">' + $(obj).attr('data-abbreviation') + '</span>');
+                });
+            }
+
+            updateTallyColor();
+            bindCameraButtons();
+        }
+        function setCamera() {
+            camSelection = $('#cameraSelection').val();
+            updateTally();
+        }
+        $('#cameraSelection').change(() => {setCamera();})
+        $(function () {
+            var socket = io();
+            socket.on('update_tally', function(msg) {
+                console.log(msg);
+                lastUpdate = msg;
+                $('#cameraSelection').html('');
+                $('#cameraSelection').append($('<option/>', {
+                    value: "ALL",
+                    text: "All Cameras",
+                    selected: (camSelection != "ALL") ? false : true
+                }));
+                $.each(msg.availableCameras, function(key, value) {
+                    console.log(value);
+                    $('#cameraSelection').append($('<option/>', {
+                        value: value.sourceID,
+                        text: value.name + " (" + value.abbreviation + " - " + value.interface + ")",
+                        selected: (camSelection == value.sourceID) ? true : false
+                    }));
+                })
+                updateTally();
+                bindCameraButtons();
+            })
+        });

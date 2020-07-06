@@ -1,0 +1,133 @@
+html, body {
+    background: #202427;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+p, span, h1, h2 {
+    cursor: default;
+    user-select: none;
+}
+
+.viewport-frame {
+    padding-top: 56px;
+    height: 100vh;
+    overflow: auto;
+    background: #202427;
+    color: #D8DCDF;
+}
+
+.viewTitle {
+    margin-top: 2rem;
+}
+
+input[type='color'] {
+    padding: 0;
+    background: rgba(0, 0, 0, 0);
+    border: none;
+    &:active {
+        background: rgba(0, 0, 0, 0);
+        border: none;
+    }
+}
+
+.form-control:disabled {
+    background: #CCCCCC;
+    color: #999999;
+}
+
+.view {
+    width: 100%;
+    height: 100%;
+}
+
+#viewTallyError {
+    width: 100%;
+    height: 100%;
+    .errMsg {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+}
+
+#viewTallyRenderer {
+    // min-height: 100%;
+    // height: 100%;
+    // overflow: auto;
+    &.viewSingleTally {
+        height: 100%;
+        width: 100%;
+    }
+    &.viewMultiTally {
+        display: grid;
+        grid-gap: 16px;
+        grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+        grid-auto-rows: 1fr;
+        padding: 16px;
+        &::before {
+            content: '';
+            grid-column: 1 / 1;
+            grid-row: 1 / 1;
+            padding-bottom: 100%;
+            width: 0;
+        }
+        &>*:first-child {
+            grid-column: 1 / 1;
+            grid-row: 1 / 1;
+        }
+    }
+}
+
+#btn-group-voice button {
+    margin-left: 1em;
+}
+
+.tally {
+    position: relative;
+    transition: box-shadow 0.5s ease-out;
+    // &[data-tally-state='inactive'] {
+    //     background: #333333;
+    // }
+    // &[data-tally-state='preview'] {
+    //     background: #00FF00;
+    // }
+    // &[data-tally-state='program'] {
+    //     background: #FF0000;
+    // }
+    &[data-tally-state='preview'], &[data-tally-state='program'] {
+        box-shadow: inset 0 0 40px 15px rgba(20, 20, 20, 0.3);
+    }
+    &.tally-single {
+        height: 100%;
+        width: 100%;
+    }
+    &.tally-multi {
+        border-radius: 5px;
+    }
+    .tallyCameraLabel {
+        background: rgba(0, 0, 0, 0.5);
+        border-radius: 16px;
+        text-align: center;
+        display: block;
+        font-weight: bold;
+        padding: 0.3em 0.5em;
+    }
+    .tallyCameraId {
+        color: black;
+        font-family: Arial, Helvetica, sans-serif;
+        font-size: 72px;
+        font-weight: bold;
+        left: 50%;
+        position: absolute;
+        text-shadow: 0px 3px 3px rgba(20, 20, 20, 0.3);
+        top: 50%;
+        transform: translateX(-50%) translateY(-50%);
+    }
+    .tallyCameraLabel {
+        bottom: 5%;
+        left: 50%;
+        position: absolute;
+        transform: translateX(-50%);
+    }
+}
