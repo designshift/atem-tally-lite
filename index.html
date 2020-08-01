@@ -26,13 +26,16 @@
         <div class="navbar-collapse collapse" id="navbarMain">
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item">
-                    <a class="nav-link" href="#" id="navTally">Tally</a>
+                    <a class="nav-link" href="#" id="navTally">Status</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="navWeb">Web</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#" id="navPi">Pi</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="navSettings">Settings</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#" id="navWeb">Web View</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="navAbout">About</a>
@@ -97,6 +100,17 @@
                 <h1 class="viewTitle">Web View</h1>
                 <p>Scan the QR code below to view tally status on any browser</p>
                 <div id="qrcodeRegion"></div>
+            </div>
+        </div>
+        <div id="viewPi" class="view">
+            <div class="container">
+                <h1 class="viewTitle">Pi Listeners</h1>
+                <button class="btn btn-primary" id="btnRescanNetworkPi">
+                    Search Network
+                </button>
+                <div id="piDeviceList">
+
+                </div>
             </div>
         </div>
         <div id="viewAbout" class="view">

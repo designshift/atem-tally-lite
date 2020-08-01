@@ -56,7 +56,7 @@ html
                             class: "tally tally-multi",
                             'data-sid': value.sourceID,
                             'data-cid': value.sourceID.split('_')[1],
-                            'data-tally-state': (value.sourceID.split('_')[1] == lastUpdate.programSourceId) ? 'program' : ((value.sourceID.split('_')[1] == lastUpdate.previewSourceId) ? 'preview': 'inactive'),
+                            'data-tally-state': (lastUpdate.programSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'program' : ((lastUpdate.previewSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'preview': 'inactive'),
                             'data-abbreviation': value.abbreviation,
                             'data-name': value.name
                         }))
@@ -74,7 +74,7 @@ html
                             class: "tally tally-single",
                             'data-sid': value.sourceID,
                             'data-cid': value.sourceID.split('_')[1],
-                            'data-tally-state': (value.sourceID.split('_')[1] == lastUpdate.programSourceId) ? 'program' : ((value.sourceID.split('_')[1] == lastUpdate.previewSourceId) ? 'preview': 'inactive'),
+                            'data-tally-state': (lastUpdate.programSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'program' : ((lastUpdate.previewSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'preview': 'inactive'),
                             'data-abbreviation': value.abbreviation,
                             'data-name': value.name
                         }))

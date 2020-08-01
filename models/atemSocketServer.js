@@ -18,8 +18,8 @@ function AtemSocketServer() {
     this.io = io;
     this.http = http;
     this.host = '';
-    this.previewSourceId = -1;
-    this.programSourceId = -1;
+    this.previewSourceIds = [];
+    this.programSourceIds = [];
     this.availableCameras = {};
 
     return this;
@@ -29,8 +29,8 @@ AtemSocketServer.prototype.createTallyStateMessage = () => {
     var self = this;
     var msg = {};
 
-    msg.previewSourceId = self.previewSourceId;
-    msg.programSourceId = self.programSourceId;
+    msg.previewSourceIds = self.previewSourceIds;
+    msg.programSourceIds = self.programSourceIds;
     msg.availableCameras = self.availableCameras;
 
     return msg;
@@ -41,8 +41,8 @@ AtemSocketServer.prototype.newClient = () => {
 
     var msg = {};
 
-    msg.previewSourceId = self.previewSourceId;
-    msg.programSourceId = self.programSourceId;
+    msg.previewSourceIds = self.previewSourceIds;
+    msg.programSourceIds = self.programSourceIds;
     msg.availableCameras = [];
 
     Object.keys(self.availableCameras).forEach(function(key) {
@@ -58,18 +58,18 @@ AtemSocketServer.prototype.newClient = () => {
     self.io.emit('update_tally', msg);
 }
 
-AtemSocketServer.prototype.updateTally = (previewSourceId, programSourceId, availableCameras) => {
+AtemSocketServer.prototype.updateTally = (previewSourceIds, programSourceIds, availableCameras) => {
     var self = global.socketServer;
-    console.log("Updating tally");
+    // console.log("Updating tally");
 
-    self.previewSourceId = previewSourceId;
-    self.programSourceId = programSourceId;
+    self.previewSourceIds = previewSourceIds;
+    self.programSourceIds = programSourceIds;
     self.availableCameras = availableCameras;
 
     var msg = {};
 
-    msg.previewSourceId = self.previewSourceId;
-    msg.programSourceId = self.programSourceId;
+    msg.previewSourceIds = self.previewSourceIds;
+    msg.programSourceIds = self.programSourceIds;
     msg.availableCameras = [];
 
     Object.keys(self.availableCameras).forEach(function(key) {
@@ -83,6 +83,11 @@ AtemSocketServer.prototype.updateTally = (previewSourceId, programSourceId, avai
 
     self.emit('update_tally');
     self.io.emit('update_tally', msg);
+}
+
+AtemSocketServer.prototype.stopTally = (msg) => {
+    var self = global.socketServer;
+    self.io.emit('stop_tally', msg);
 }
 
 AtemSocketServer.prototype.startServer = (callback) => {

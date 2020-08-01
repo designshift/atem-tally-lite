@@ -17,8 +17,8 @@ function AtemController() {
     this.activeatem = new Atem({ externalLog: console.log });
     this.activeip = '';
     this.availableCameras = [];
-    this.previewSourceId = -1;
-    this.programSourceId = -1;
+    this.previewSourceIds = [];
+    this.programSourceIds = [];
     this.searchState = 0;
     this.searchOptions = {
         type: "blackmagic",
@@ -68,6 +68,8 @@ AtemController.prototype.selectDevice = function(ip) {
     self.availableCameras = new Array();
 
     self.activeatem.on('stateChanged', function(state, path) {
+        var previewEnabled = [];
+        var programEnabled = [];
         switch (path) {
             case 'reconnect':
                 self.onAtemDisconnection();
@@ -77,6 +79,7 @@ AtemController.prototype.selectDevice = function(ip) {
 
                 // Repopulate camera list
                 var inputs = self.activeatem.state.inputs;
+
                 if (inputs) {
                     Object.keys(inputs).forEach(function(key) {
                         var input = inputs[key];
@@ -90,27 +93,93 @@ AtemController.prototype.selectDevice = function(ip) {
                         }
 
                     });
-                    if (state.video.ME[0]) {
-                        self.emit('update_cameras');
-                        self.onAtemPreviewChange(state.video.ME[0].previewInput);
-                        self.onAtemProgramChange(state.video.ME[0].programInput);
-                    }
+                    self.emit('update_cameras');
+                    // if (state.video.ME[0]) {
+                    //     previewEnabled.push(state.video.ME[0].previewInput);
+                    //     programEnabled.push(state.video.ME[0].programInput);
+                    //     self.onAtemPreviewChange(previewEnabled);
+                    //     self.onAtemProgramChange(programEnabled);
+                    // }
                 }
-                break;
-            case 'video.ME.0.transition':
-                // video.ME.0.transition for AUTO transition
             case 'video.ME.0.fadeToBlack':
+
+
                 // video.ME.0.fadeToBlack for FTB
-            case 'video.ME.0.upstreamKeyers.0.onAir':
-                // video.ME.0.upstreamKeyers.0.onAir Upstream key active for KEY 1
+
             default:
                 // console.log(state.video.ME[0].previewInput);
-                if (path.split('.')[0] == 'video' && state.video.ME[0]) {
-                    self.onAtemPreviewChange(state.video.ME[0].previewInput);
-                    self.onAtemProgramChange(state.video.ME[0].programInput);
-                }
-                if (path.split('.')[0] != 'info')
+                if (path.split('.')[0] != 'info') {
+                    console.log(state);
                     console.log(path);
+                }
+
+                if ((path.split('.')[0] == 'video' || (path == 'info' && self.activeatem.state.inputs)) && state.video.ME[0]) {
+                    if (state.video.ME[0].inTransition) {
+                        programEnabled.push(state.video.ME[0].programInput);
+                        programEnabled.push(state.video.ME[0].previewInput);
+
+                        if (state.video.ME[0].upstreamKeyers[0] && (state.video.ME[0].transitionProperties.selection & (1 << 1) || state.video.ME[0].upstreamKeyers[0].onAir)) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[0].fillSource);
+                        }
+                        if (state.video.ME[0].upstreamKeyers[1] && (state.video.ME[0].transitionProperties.selection & (1 << 2) || state.video.ME[0].upstreamKeyers[1].onAir)) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[1].fillSource);
+                        }
+                        if (state.video.ME[0].upstreamKeyers[2] && (state.video.ME[0].transitionProperties.selection & (1 << 3) || state.video.ME[0].upstreamKeyers[2].onAir)) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[2].fillSource);
+                        }
+                        if (state.video.ME[0].upstreamKeyers[3] && (state.video.ME[0].transitionProperties.selection & (1 << 4) || state.video.ME[0].upstreamKeyers[3].onAir)) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[3].fillSource);
+                        }
+                    } else {
+                        previewEnabled.push(state.video.ME[0].previewInput);
+                        programEnabled.push(state.video.ME[0].programInput);
+                        if (state.video.ME[0].upstreamKeyers[0] && state.video.ME[0].upstreamKeyers[0].onAir) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[0].fillSource);
+                        }
+                        if (state.video.ME[0].upstreamKeyers[1] && state.video.ME[0].upstreamKeyers[1].onAir) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[1].fillSource);
+                        }
+                        if (state.video.ME[0].upstreamKeyers[2] && state.video.ME[0].upstreamKeyers[2].onAir) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[2].fillSource);
+                        }
+                        if (state.video.ME[0].upstreamKeyers[3] && state.video.ME[0].upstreamKeyers[3].onAir) {
+                            programEnabled.push(state.video.ME[0].upstreamKeyers[3].fillSource);
+                        }
+                    }
+
+                    if (state.video.ME[0].transitionProperties.selection & (1 << 1)) {
+                        if (state.video.ME[0].upstreamKeyers[0])
+                            previewEnabled.push(state.video.ME[0].upstreamKeyers[0].fillSource);
+                    }
+                    if (state.video.ME[0].transitionProperties.selection & (1 << 2)) {
+                        if (state.video.ME[0].upstreamKeyers[1])
+                            previewEnabled.push(state.video.ME[0].upstreamKeyers[1].fillSource);
+                    }
+                    if (state.video.ME[0].transitionProperties.selection & (1 << 3)) {
+                        if (state.video.ME[0].upstreamKeyers[2])
+                            previewEnabled.push(state.video.ME[0].upstreamKeyers[2].fillSource);
+                    }
+                    if (state.video.ME[0].transitionProperties.selection & (1 << 4)) {
+                        if (state.video.ME[0].upstreamKeyers[3])
+                            previewEnabled.push(state.video.ME[0].upstreamKeyers[3].fillSource);
+                    }
+
+                    if (state.video.downstreamKeyers[0] && (state.video.downstreamKeyers[0].onAir || state.video.downstreamKeyers[0].inTransition))
+                        programEnabled.push(state.video.downstreamKeyers[0].sources.fillSource);
+                    if (state.video.downstreamKeyers[1] && (state.video.downstreamKeyers[1].onAir || state.video.downstreamKeyers[1].inTransition))
+                        programEnabled.push(state.video.downstreamKeyers[1].sources.fillSource);
+                    if (state.video.downstreamKeyers[2] && (state.video.downstreamKeyers[2].onAir || state.video.downstreamKeyers[2].inTransition))
+                        programEnabled.push(state.video.downstreamKeyers[2].sources.fillSource);
+                    if (state.video.downstreamKeyers[3] && (state.video.downstreamKeyers[3].onAir || state.video.downstreamKeyers[3].inTransition))
+                        programEnabled.push(state.video.downstreamKeyers[3].sources.fillSource);
+
+                    previewEnabled.push(state.video.ME[0].previewInput);
+                    programEnabled.push(state.video.ME[0].programInput);
+
+                    self.onAtemPreviewChange(previewEnabled);
+                    self.onAtemProgramChange(programEnabled);
+                }
+
                 break;
         }
     });
@@ -140,30 +209,26 @@ AtemController.prototype.onAtemConnection = function() {
 AtemController.prototype.onAtemDisconnection = function() {
     var self = this;
     self.emit('disconnect');
-    self.previewSourceId = -1;
-    self.programSourceId = -1;
+    self.previewSourceIds = [];
+    self.programSourceIds = [];
     self.availableCameras = [];
 }
 
-AtemController.prototype.onAtemPreviewChange = function(sourceId) {
+AtemController.prototype.onAtemPreviewChange = function(sourceIds) {
     var self = this;
-    console.log("Preview changed to " + sourceId);
-    self.previewSourceId = sourceId;
+    console.log("Preview changed to ");
+    console.log(sourceIds);
+    self.previewSourceIds = sourceIds;
 
     self.emit('preview_change');
     self.onAtemAllChanges();
 }
 
-AtemController.prototype.onAtemProgramChange = function(sourceId) {
+AtemController.prototype.onAtemProgramChange = function(sourceIds) {
     var self = this;
-    console.log("Program changed to " + sourceId);
-    self.programSourceId = sourceId;
-
-    // io.updateTally(
-    //     self.previewSourceId,
-    //     self.programSourceId,
-    //     self.availableCameras
-    // );
+    console.log("Program changed to ");
+    console.log(sourceIds);
+    self.programSourceIds = sourceIds;
 
     self.emit('program_change');
     self.onAtemAllChanges();
@@ -173,8 +238,8 @@ AtemController.prototype.createIPCMessage = function() {
     var msg = {};
     var self = this;
 
-    msg.previewSourceId = self.previewSourceId;
-    msg.programSourceId = self.programSourceId;
+    msg.previewSourceIds = self.previewSourceIds;
+    msg.programSourceIds = self.programSourceIds;
     msg.availableCameras = self.availableCameras;
 
     return msg;

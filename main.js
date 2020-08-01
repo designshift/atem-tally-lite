@@ -8,11 +8,17 @@ global.socketServer = atemSocketServer;
 ipcMain.on('update_tally', (event, arg) => {
     let msg = arg;
     global.socketServer.updateTally(
-        msg.previewSourceId,
-        msg.programSourceId,
+        msg.previewSourceIds,
+        msg.programSourceIds,
         msg.availableCameras
     );
 });
+
+ipcMain.on('stop_tally', (event, arg) => {
+    let msg = arg;
+    console.log(msg);
+    global.socketServer.stopTally(msg);
+})
 
 function createWindow() {
     const win = new BrowserWindow({

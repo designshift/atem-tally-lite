@@ -1,13 +1,23 @@
 const AtemController = require('./models/atemController');
+const PiController = require('./models/piController');
 const Store = require('electron-store');
 const os = require('os');
 const ifaces = os.networkInterfaces();
 let atemController = new AtemController();
+let piController = new PiController();
 
 let store = new Store();
 
 var programColor = "#FF0000";
 var previewColor = "#00FF00";
+
+Views = {
+    Tally: 'viewTally',
+    Settings: 'viewSettings',
+    Web: 'viewWeb',
+    Pi: 'viewPi',
+    About: 'viewAbout'
+}
 
 function updateTallyColor() {
     $('.tally').css('background', '#333333'); // Reset all to black first
@@ -55,12 +65,12 @@ function updateTally() {
                     output = '';
                     sid = Object.keys(cameras)[key].split('_')[1];
 
-                    if (atemController.previewSourceId == sid) {
+                    if (atemController.previewSourceIds.includes(parseInt(sid))) {
                         state = 'preview';
                     }
 
                     // Program overrides preview
-                    if (atemController.programSourceId == sid) {
+                    if (atemController.programSourceIds.includes(parseInt(sid))) {
                         state = 'program';
                     }
 
@@ -85,12 +95,12 @@ function updateTally() {
 
             let state = 'inactive';
 
-            if (atemController.previewSourceId == sid) {
+            if (atemController.previewSourceIds.includes(parseInt(sid))) {
                 state = 'preview';
             }
 
             // Program overrides preview
-            if (atemController.programSourceId == sid) {
+            if (atemController.programSourceIds.includes(parseInt(sid))) {
                 state = 'program';
             }
 
@@ -151,20 +161,15 @@ function hideMenu() {
     $('#navbarMain').removeClass('show');
 }
 
-Views = {
-    Tally: 'viewTally',
-    Settings: 'viewSettings',
-    Web: 'viewWeb',
-    About: 'viewAbout'
-}
+
 
 function showView(viewname) {
     hideMenu();
+    $('.view').css('display', 'none');
     if (viewname) {
-        document.getElementById("viewTally").style.display = (viewname == Views.Tally) ? 'block' : 'none';
-        document.getElementById("viewSettings").style.display = (viewname == Views.Settings) ? 'block' : 'none';
-        document.getElementById("viewWeb").style.display = (viewname == Views.Web) ? 'block' : 'none';
-        document.getElementById("viewAbout").style.display = (viewname == Views.About) ? 'block' : 'none';
+        $('#' + viewname).css('display', 'block');
+    } else {
+        ('#' + Views.Tally).css('display', 'block');
     }
 }
 
@@ -243,11 +248,36 @@ function updateDevices() {
     });
 }
 
+function updatePiDevices() {
+    $('#piDeviceList').html('');
+    piController.refreshDeviceList(function() {
+        var d = piController.getAvailableDevices();
+        Object.keys(d).forEach(function(k) {
+            var out = "";
+            out += "<div class=\"form-check\">";
+            out += "<input type=\"checkbox\" class=\"pi-device form-check-input\" id=\"pi-" + d[k].addresses[0] + "\" value=\"" + d[k].addresses[0] + "\">";
+            out += "<label class=\"form-check-label\" for=\"pi-" + d[k].addresses[0] + "\">" + d[k].host + " (" + d[k].addresses[0] + ")</label>";
+            out += "</div>";
+            $('#piDeviceList').append(out);
+        });
+
+        $('.pi-device').change(function(e) {
+            if (e.target.checked) {
+                piController.enableDevice(e.target.value);
+            } else {
+                piController.disableDevice(e.target.value);
+            }
+        });
+
+    });
+}
+
+
 (window).onload = () => {
     setInitialStates();
     updateDevices();
+    updatePiDevices();
     updateQRCode();
-
 }
 
 function createQrCodeUrl(uri) {
@@ -357,12 +387,20 @@ $('#navWeb').click(function() {
     showView(Views.Web);
 });
 
+$('#navPi').click(function() {
+    showView(Views.Pi);
+});
+
 $('#navAbout').click(function() {
     showView(Views.About);
 });
 
 $('.viewport-frame').click(function() {
     hideMenu();
+})
+
+$('#btnRescanNetworkPi').click(function() {
+    updatePiDevices();
 })
 
 $('#inputDeviceSelection').change(function() {
