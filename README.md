@@ -17,7 +17,7 @@ How to (Development)
     # Run the app
     npm start
     
-Tip: Use an [Atem Simulator]{https://github.com/Dev1an/Atem-Simulator} is you don't have an Atem Switcher on hand.
+Tip: Use an [Atem Simulator](https://github.com/Dev1an/Atem-Simulator) is you don't have an Atem Switcher on hand.
 
 How to (Build)
 ----------
