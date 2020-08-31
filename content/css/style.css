@@ -13,7 +13,7 @@ p, span, h1, h2 {
 
 .viewport-frame {
   padding-top: 56px;
-  height: 100vh;
+  height: 90vh;
   overflow: auto;
   background: #202427;
   color: #D8DCDF;
@@ -63,11 +63,8 @@ input[type='color']:active {
 }
 
 #viewTallyRenderer.viewMultiTally {
-  display: -ms-grid;
   display: grid;
   grid-gap: 16px;
-  -ms-grid-columns: (minmax(10rem, 1fr))[auto-fill];
-      grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
   grid-auto-rows: 1fr;
   padding: 16px;
 }
@@ -102,8 +99,7 @@ input[type='color']:active {
 }
 
 .tally[data-tally-state='preview'], .tally[data-tally-state='program'] {
-  -webkit-box-shadow: inset 0 0 40px 15px rgba(20, 20, 20, 0.3);
-          box-shadow: inset 0 0 40px 15px rgba(20, 20, 20, 0.3);
+    
 }
 
 .tally.tally-single {
@@ -143,4 +139,8 @@ input[type='color']:active {
   position: absolute;
   -webkit-transform: translateX(-50%);
           transform: translateX(-50%);
+}
+
+.legal {
+    color: #cecece;
 }
