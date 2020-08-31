@@ -20,7 +20,7 @@ Views = {
 }
 
 function updateTallyColor() {
-    $('.tally').css('background', '#333333'); // Reset all to black first
+    $('.tally').css('background', '#cecece'); // Reset all to black first
     $(".tally[data-tally-state='preview']").css('background', previewColor);
     $(".tally[data-tally-state='program']").css('background', programColor);
 }
@@ -53,7 +53,7 @@ function updateTally() {
         let cameras = atemController.availableCameras;
         let sid = '';
         let output = '';
-        renderer.html('');
+        renderer.html('<h2>Connecting</h2>');
 
         // console.log(cameras);
         if ($('#cameraSelection').val() === "ALL") {
@@ -111,7 +111,7 @@ function updateTally() {
                 'data-tally-state': state,
                 'data-abbreviation': atemController.availableCameras[fullsid].abbreviation,
                 'data-name': atemController.availableCameras[fullsid].name
-            }))
+            }));
 
             $('.tally-single').each(function(i, obj) {
                 $(obj).append('<span class="tallyCameraId">' + $(obj).attr('data-cid') + '</span>');
