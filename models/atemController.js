@@ -52,7 +52,6 @@ AtemController.prototype.updateDeviceList = function(callback) {
         self.emit('device_search_stop');
         callback(null, self.devices);
     }, 5000);
-    return;
 }
 
 AtemController.prototype.selectDevice = function(ip) {
