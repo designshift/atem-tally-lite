@@ -20,7 +20,7 @@ html
     script(src="https://code.jquery.com/jquery-3.4.1.min.js")
     script.
         var lastUpdate = {};
-        var camSelection = "ALL";
+        var camSelection = window.location.hash.split('#')[1] || "ALL";
         var programColor = "#FF0000";
         var previewColor = "#00FF00";
 
@@ -91,6 +91,7 @@ html
         }
         function setCamera() {
             camSelection = $('#cameraSelection').val();
+            window.location.hash = camSelection
             updateTally();
         }
         $('#cameraSelection').change(() => {setCamera();})
