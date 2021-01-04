@@ -6,28 +6,56 @@ html
   body
     nav.navbar-expand.fixed-top.navbar-dark.bg-dark.justify-content-between
         .camSelectArea
-            select#cameraSelection
+            button.btn.btn-secondary#btnMobileSettings Settings
+            button.btn.btn-link#btnWakeLock Keep Screen On
+
 
     section.viewport-frame
         .view#viewTally
             #viewTallyRenderer
-        
+
+    section.mobileSettings(style="display:none;")
+        .mobileSettingsViewBg
+        .mobileSettingsView
+            .mobileSettingsViewContainer
+                .row
+                    .form-group.col-sm
+                        label.navbar-text(for="cameraSelection") Camera
+                        select.form-control#cameraSelection
+                .row
+                    .form-group.col-sm
+                        label.navbar-text(for="btnProgramColor") Program Color
+                        input.form-control#btnProgramColor(type="color",value="#FF0000")
+                    .form-group.col-sm
+                        label.navbar-text(for="btnPreviewColor") Preview Color
+                        input.form-control#btnPreviewColor(type="color",value="#00FF00")
+                .row
+                    .col-sm
+                        button.btn.btn-primary#btnMobileCloseSettings(type="button",aria-label="close")
+                            span(aria-hidden="true") Save
+            
     link(rel="stylesheet", href="/css/bootstrap.min.css")
     link(rel="stylesheet", href="/css/style.min.css")
 
 
     script(src="/js/socket.io.js")
-    script(src="https://code.jquery.com/jquery-3.4.1.min.js")
+    script(src="/jquery/jquery.min.js")
+    script(src="/nosleep/NoSleep.min.js")
+    script(src="/jscookie/js.cookie.js")
     script.
         var lastUpdate = {};
         var camSelection = window.location.hash.split('#')[1] || "ALL";
         var programColor = "#FF0000";
         var previewColor = "#00FF00";
+        var noSleep = new NoSleep();
 
         function updateTallyColor() {
+            console.log("updating color")
             $('.tally').css('background', '#333333'); // Reset all to black first
-            $(".tally[data-tally-state='preview']").css('background', previewColor);
-            $(".tally[data-tally-state='program']").css('background', programColor);
+            $(".tally[data-tally-state='preview']").css('background', getPreviewColor());
+            $(".tally[data-tally-state='program']").css('background', getProgramColor());
+            $('#btnProgramColor').val(getProgramColor());
+            $('#btnPreviewColor').val(getPreviewColor());
         }
 
         function bindCameraButtons() {
@@ -92,9 +120,52 @@ html
         function setCamera() {
             camSelection = $('#cameraSelection').val();
             window.location.hash = camSelection
+            Cookies.set('cameraSelection', camSelection);
             updateTally();
         }
-        $('#cameraSelection').change(() => {setCamera();})
+        function getCamera() {
+            var camSelection = Cookies.set('cameraSelection');
+            if (!camSelection) {
+                camSelection = "ALL";
+                Cookies.set('cameraSelection', camSelection);
+            }
+            return camSelection;
+        }
+        function setProgramColor(color) {
+            Cookies.set('programColor', color);
+            programColor = color;
+            updateTallyColor();
+        }
+        function setPreviewColor(color) {
+            Cookies.set('previewColor', color);
+            previewColor = color;
+            updateTallyColor();
+        }
+        function getProgramColor() {
+            var color = (Cookies.get('programColor')) ? Cookies.get('programColor') : programColor;
+            return color;
+        }
+        function getPreviewColor() {
+            var color = (Cookies.get('previewColor')) ? Cookies.get('previewColor') : previewColor;
+            return color;
+        }
+        $('#cameraSelection').change(() => { setCamera(); });
+        $('#btnProgramColor').change(() => { setProgramColor( $('#btnProgramColor').val() ); });
+        $('#btnPreviewColor').change(() => { setPreviewColor( $('#btnPreviewColor').val() ); });
+        $('#btnWakeLock').click(() => {noSleep.enable(); $('#btnWakeLock').hide()});
+        $('#btnMobileSettings').click(() => {
+            $('.mobileSettings').css('display','block');
+        });
+        $('.mobileSettingsViewBg').click(() => {
+            $('.mobileSettings').css('display','none');
+            setProgramColor( $('#btnProgramColor').val() );
+            setPreviewColor( $('#btnPreviewColor').val() );
+        });
+        $('#btnMobileCloseSettings').click(() => {
+            $('.mobileSettings').css('display','none');
+            setProgramColor( $('#btnProgramColor').val() );
+            setPreviewColor( $('#btnPreviewColor').val() );
+        });
         $(function () {
             var socket = io();
             socket.on('update_tally', function(msg) {

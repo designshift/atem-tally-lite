@@ -9,11 +9,10 @@
 
     <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="./content/css/style.min.css" />
-    <script>
-        let $ = require('jquery');
-        require('popper.js')
-        require('bootstrap')
-    </script>
+
+    <!-- <script src="./node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./node_modules/popper.js/dist/popper.min.js"></script>
+    <script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script> -->
 </head>
 
 <body>
@@ -85,12 +84,34 @@
                 <div class="row">
 
                     <div class="form-group col-sm">
-                        <label for="colorProgram" class="navbar-text">Program Color</label>
+                        <label for="btnProgramColor" class="navbar-text">Program Color</label>
                         <input type="color" id="btnProgramColor" class="form-control" value="#FF0000">
                     </div>
                     <div class="form-group col-sm">
-                        <label for="colorPreview" class="navbar-text">Preview Color</label>
+                        <label for="btnPreviewColor" class="navbar-text">Preview Color</label>
                         <input type="color" id="btnPreviewColor" class="form-control" value="#00FF00">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="portSelection" class="navbar-text">Client Interface</label>
+                    <select class="form-control" id="portSelection">
+
+                    </select>
+                </div>
+                <div class="form-group">
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="optionTelemetrySwitch">
+                        <label class="custom-control-label" for="optionTelemetrySwitch">Share usage data</label>
+                        <p>This shares basic information about your usage to help us improve this tool. Your usage data is not used to uniquely identify you.</p>
+                    </div>
+                    <div class="custom-control custom-switch">
+                        <input type="checkbox" class="custom-control-input" id="optionAdvancedTelemetrySwitch">
+                        <label class="custom-control-label" for="optionAdvancedTelemetrySwitch">Share detailed usage data</label>
+                        <p>
+                            This shares detailed data about your usage of this tool. The data collected may contain personally identifiable information such as the ATEM device name, camera labels, and network configurations. Ref:
+                            <span id="telemetryIdentifier"></span>
+                        </p>
                     </div>
                 </div>
             </div>
@@ -106,7 +127,7 @@
             <div class="container">
                 <h1 class="viewTitle">Pi Listeners</h1>
                 <button class="btn btn-primary" id="btnRescanNetworkPi">
-                    Search Network
+                    Refresh Devices
                 </button>
                 <div id="piDeviceList">
 
@@ -116,9 +137,10 @@
         <div id="viewAbout" class="view">
             <div class="container">
                 <h1 class="viewTitle">About</h1>
+                <p id="appVersion"></p>
                 <p>
                     &copy; 2020 Design Shift Consulting<br>
-                    <a href="https://designshift.ca">designshift.ca</a>
+                    <a href="https://designshift.ca/apps/atem-tally/">designshift.ca</a>
                 </p>
                 <p>
                     Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify,
@@ -134,6 +156,11 @@
             </div>
         </div>
     </div>
+    <script>
+        let $ = require('jquery');
+        require('popper.js')
+        require('bootstrap')
+    </script>
     <script src="./content/js/mainUI.js"></script>
 </body>
 

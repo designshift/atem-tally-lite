@@ -94,13 +94,8 @@ AtemController.prototype.selectDevice = function(ip) {
 
                     });
                     self.emit('update_cameras');
-                    // if (state.video.ME[0]) {
-                    //     previewEnabled.push(state.video.ME[0].previewInput);
-                    //     programEnabled.push(state.video.ME[0].programInput);
-                    //     self.onAtemPreviewChange(previewEnabled);
-                    //     self.onAtemProgramChange(programEnabled);
-                    // }
                 }
+                telemetry.trackAdvancedEvent("atem_device_info", { device: state });
             case 'video.ME.0.fadeToBlack':
 
 
@@ -118,60 +113,36 @@ AtemController.prototype.selectDevice = function(ip) {
                         programEnabled.push(state.video.ME[0].programInput);
                         programEnabled.push(state.video.ME[0].previewInput);
 
-                        if (state.video.ME[0].upstreamKeyers[0] && (state.video.ME[0].transitionProperties.selection & (1 << 1) || state.video.ME[0].upstreamKeyers[0].onAir)) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[0].fillSource);
-                        }
-                        if (state.video.ME[0].upstreamKeyers[1] && (state.video.ME[0].transitionProperties.selection & (1 << 2) || state.video.ME[0].upstreamKeyers[1].onAir)) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[1].fillSource);
-                        }
-                        if (state.video.ME[0].upstreamKeyers[2] && (state.video.ME[0].transitionProperties.selection & (1 << 3) || state.video.ME[0].upstreamKeyers[2].onAir)) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[2].fillSource);
-                        }
-                        if (state.video.ME[0].upstreamKeyers[3] && (state.video.ME[0].transitionProperties.selection & (1 << 4) || state.video.ME[0].upstreamKeyers[3].onAir)) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[3].fillSource);
-                        }
+                        Object.keys(state.video.ME).forEach(function(meKey) {
+                            Object.keys(state.video.ME[meKey].upstreamKeyers).forEach(function(kKey) {
+                                if (state.video.ME[meKey].transitionProperties.selection & (1 << (kKey + 1)) || state.video.ME[meKey].upstreamKeyers[kKey].onAir)
+                                    programEnabled.push(state.video.ME[meKey].upstreamKeyers[kKey].fillSource);
+                            })
+                        });
                     } else {
                         previewEnabled.push(state.video.ME[0].previewInput);
                         programEnabled.push(state.video.ME[0].programInput);
-                        if (state.video.ME[0].upstreamKeyers[0] && state.video.ME[0].upstreamKeyers[0].onAir) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[0].fillSource);
-                        }
-                        if (state.video.ME[0].upstreamKeyers[1] && state.video.ME[0].upstreamKeyers[1].onAir) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[1].fillSource);
-                        }
-                        if (state.video.ME[0].upstreamKeyers[2] && state.video.ME[0].upstreamKeyers[2].onAir) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[2].fillSource);
-                        }
-                        if (state.video.ME[0].upstreamKeyers[3] && state.video.ME[0].upstreamKeyers[3].onAir) {
-                            programEnabled.push(state.video.ME[0].upstreamKeyers[3].fillSource);
-                        }
+
+                        Object.keys(state.video.ME).forEach(function(meKey) {
+                            Object.keys(state.video.ME[meKey].upstreamKeyers).forEach(function(kKey) {
+                                if (state.video.ME[meKey].upstreamKeyers[kKey].onAir)
+                                    programEnabled.push(state.video.ME[meKey].upstreamKeyers[kKey].fillSource);
+                            })
+                        });
                     }
 
-                    if (state.video.ME[0].transitionProperties.selection & (1 << 1)) {
-                        if (state.video.ME[0].upstreamKeyers[0])
-                            previewEnabled.push(state.video.ME[0].upstreamKeyers[0].fillSource);
-                    }
-                    if (state.video.ME[0].transitionProperties.selection & (1 << 2)) {
-                        if (state.video.ME[0].upstreamKeyers[1])
-                            previewEnabled.push(state.video.ME[0].upstreamKeyers[1].fillSource);
-                    }
-                    if (state.video.ME[0].transitionProperties.selection & (1 << 3)) {
-                        if (state.video.ME[0].upstreamKeyers[2])
-                            previewEnabled.push(state.video.ME[0].upstreamKeyers[2].fillSource);
-                    }
-                    if (state.video.ME[0].transitionProperties.selection & (1 << 4)) {
-                        if (state.video.ME[0].upstreamKeyers[3])
-                            previewEnabled.push(state.video.ME[0].upstreamKeyers[3].fillSource);
-                    }
+                    Object.keys(state.video.ME).forEach(function(meKey) {
+                        for (var i = 1; i < 4; i++) {
+                            if (state.video.ME[meKey].transitionProperties.selection & (1 << i) && state.video.ME[meKey].upstreamKeyers[i - 1]) {
+                                previewEnabled.push(state.video.ME[meKey].upstreamKeyers[i - 1].fillSource);
+                            }
+                        }
+                    });
 
-                    if (state.video.downstreamKeyers[0] && (state.video.downstreamKeyers[0].onAir || state.video.downstreamKeyers[0].inTransition))
-                        programEnabled.push(state.video.downstreamKeyers[0].sources.fillSource);
-                    if (state.video.downstreamKeyers[1] && (state.video.downstreamKeyers[1].onAir || state.video.downstreamKeyers[1].inTransition))
-                        programEnabled.push(state.video.downstreamKeyers[1].sources.fillSource);
-                    if (state.video.downstreamKeyers[2] && (state.video.downstreamKeyers[2].onAir || state.video.downstreamKeyers[2].inTransition))
-                        programEnabled.push(state.video.downstreamKeyers[2].sources.fillSource);
-                    if (state.video.downstreamKeyers[3] && (state.video.downstreamKeyers[3].onAir || state.video.downstreamKeyers[3].inTransition))
-                        programEnabled.push(state.video.downstreamKeyers[3].sources.fillSource);
+                    Object.keys(state.video.downstreamKeyers).forEach(function(dsKey) {
+                        if (state.video.downstreamKeyers[dsKey] && (state.video.downstreamKeyers[dsKey].onAir || state.video.downstreamKeyers[dsKey].inTransition))
+                            programEnabled.push(state.video.downstreamKeyers[dsKey].sources.fillSource);
+                    });
 
                     previewEnabled.push(state.video.ME[0].previewInput);
                     programEnabled.push(state.video.ME[0].programInput);

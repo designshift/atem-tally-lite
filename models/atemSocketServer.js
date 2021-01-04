@@ -85,6 +85,18 @@ AtemSocketServer.prototype.updateTally = (previewSourceIds, programSourceIds, av
     self.io.emit('update_tally', msg);
 }
 
+AtemSocketServer.prototype.callAll = () => {
+    var self = global.socketServer;
+    self.emit('call');
+    self.io.emit('call');
+}
+
+AtemSocketServer.prototype.setRemote = (msg) => {
+    var self = global.socketServer;
+    self.emit('set_remote');
+    self.io.emit('set_remote', msg);
+}
+
 AtemSocketServer.prototype.stopTally = (msg) => {
     var self = global.socketServer;
     self.io.emit('stop_tally', msg);
@@ -102,6 +114,9 @@ AtemSocketServer.prototype.startServer = (callback) => {
     expressApp.set('views', path.join(__dirname, '..', 'views'));
     expressApp.set('view engine', 'pug');
     expressApp.use(express.static(path.join(__dirname, '..', 'static')));
+    expressApp.use('/jquery', express.static(path.join(__dirname, '..', 'node_modules', 'jquery', 'dist')));
+    expressApp.use('/nosleep', express.static(path.join(__dirname, '..', 'node_modules', 'nosleep.js', 'dist')));
+    expressApp.use('/jscookie', express.static(path.join(__dirname, '..', 'node_modules', 'js-cookie', 'src')));
 
     expressApp.use('/', TallyRouter);
 
@@ -121,6 +136,14 @@ AtemSocketServer.prototype.startServer = (callback) => {
         // socket.on('page_all', function(msg) {
         //     io.emit('page_all', msg)
         // });
+
+        socket.on('call', function(msg) {
+            io.emit('call', msg);
+        });
+
+        socket.on('set_remote', function(msg) {
+            io.emit('set_remote', msg);
+        });
 
         socket.on('update_tally', function(msg) {
             console.log("update tally msg received");
