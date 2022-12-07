@@ -27,7 +27,7 @@
         "bootstrap-icons": "^1.2.2",
         "electron-store": "^5.2.0",
         "electron-window-state": "^5.0.3",
-        "express": "^4.17.1",
+        "express": "^4.18.2",
         "github-version-checker": "^2.2.0",
         "http": "0.0.1-security",
         "jquery": "^3.5.1",
