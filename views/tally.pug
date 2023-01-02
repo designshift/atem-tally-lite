@@ -29,6 +29,13 @@ html
                     .form-group.col-sm
                         label.navbar-text(for="btnPreviewColor") Preview Color
                         input.form-control#btnPreviewColor(type="color",value="#00FF00")
+
+                .row
+                    .form-group.col-sm
+                        .form-check.form-switch 
+                            input.form-check-input#inputSettingsVibrate(type="checkbox",role="switch")
+                            label.form-check-label(for="inputSettingsVibrate") Vibrate on "Program" (Android Only)
+
                 .row
                     .col-sm
                         button.btn.btn-primary#btnMobileCloseSettings(type="button",aria-label="close")
@@ -48,6 +55,14 @@ html
         var programColor = "#FF0000";
         var previewColor = "#00FF00";
         var noSleep = new NoSleep();
+        var vibrating = false;
+
+        function vibratePattern() {
+            if (!vibrating) {
+                vibrating = true
+                window.navigator.vibrate([300,80,300])
+            }
+        }
 
         function updateTallyColor() {
             $('.tally').css('background', '#333333'); // Reset all to black first
@@ -120,6 +135,12 @@ html
                 });
             } else {
                 $("#viewTallyRenderer").addClass('viewSingleTally');
+                if ($('#inputSettingsVibrate').prop('checked') && lastUpdate.programSourceIds.includes(parseInt(camSelection))) {
+                    vibratePattern()
+                } else {
+                    console.log("C")
+                    vibrating = false
+                }
                 $.each(lastUpdate.availableCameras, function(key, value) {
                     if (camSelection == value.id) {
                         $("#viewTallyRenderer").append($('<div/>',{
@@ -132,6 +153,7 @@ html
                         }))
                     }
                 });
+                
                 $('.tally-single').each(function(i, obj) {
                     $(obj).append('<span class="tallyCameraId">' + $(obj).attr('data-cid') + '</span>');
                     $(obj).append('<span class="tallyCameraLabel">' + $(obj).attr('data-abbreviation') + '</span>');
