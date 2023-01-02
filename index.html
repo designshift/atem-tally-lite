@@ -8,15 +8,14 @@
     <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline';" />
 
     <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap-grid.min.css" />
+    <link rel="stylesheet" href="./node_modules/bootstrap-icons/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="./content/css/style.min.css" />
 
-    <!-- <script src="./node_modules/jquery/dist/jquery.min.js"></script>
-    <script src="./node_modules/popper.js/dist/popper.min.js"></script>
-    <script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script> -->
 </head>
 
 <body>
-    <nav class="navbar navbar-expand fixed-top navbar-dark bg-dark justify-content-between">
+    <nav class="navbar navbar-expand fixed-top navbar-dark justify-content-between">
         <span class="navbar-brand" id="navBrand">ATEM Tally Lite</span>
         <button class="navbar-toggler collapsed" id="navbarMainToggler" type="button" data-toggle="collapse" data-target="#navbarMain" aria-controls="navbarMain" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
@@ -31,7 +30,7 @@
                     <a class="nav-link" href="#" id="navWeb">Web</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="#" id="navPi">Pi</a>
+                    <a class="nav-link" href="#" id="navDevices">Devices</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="#" id="navSettings">Settings</a>
@@ -55,7 +54,7 @@
             <div class="container">
                 <h1 class="viewTitle">Settings</h1>
                 <div class="form-group ">
-                    <label for="deviceSelection" class="navbar-text">Device</label>
+                    <label for="deviceSelection" class="navbar-text">ATEM Device</label>
                     <select class="form-control" id="inputDeviceSelection">
                         <option vaule="">Select device</option>
                     </select>
@@ -70,10 +69,14 @@
                         Rescan Local Network
                     </button>
                 </div>
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" role="switch" id="optionShowStreamStatus">
+                    <label class="form-check-label" for="optionShowStreamStatus">Include Stream Status</label>
+                </div>
 
                 <div class="form-group">
-                    <label for="cameraSelection" class="navbar-text">Tally</label>
-                    <select class="form-control" id="cameraSelection" disabled="disabled">
+                    <label for="inputCameraSelection" class="navbar-text">Tally</label>
+                    <select class="form-control" id="inputCameraSelection" disabled="disabled">
                         <option value="0">No cameras detected</option>
                     </select>
                 </div>
@@ -82,7 +85,6 @@
                 </div>
 
                 <div class="row">
-
                     <div class="form-group col-sm">
                         <label for="btnProgramColor" class="navbar-text">Program Color</label>
                         <input type="color" id="btnProgramColor" class="form-control" value="#FF0000">
@@ -94,20 +96,21 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="portSelection" class="navbar-text">Client Interface</label>
+                    <label for="portSelection" class="navbar-text">Web Client Interface</label>
                     <select class="form-control" id="portSelection">
 
                     </select>
                 </div>
                 <div class="form-group">
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="optionTelemetrySwitch">
-                        <label class="custom-control-label" for="optionTelemetrySwitch">Share usage data</label>
+                    <label class="navbar-text">Data Sharing</label>
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="optionTelemetrySwitch">
+                        <label class="form-check-label" for="optionTelemetrySwitch">Share usage data</label>
                         <p>This shares basic information about your usage to help us improve this tool. Your usage data is not used to uniquely identify you.</p>
                     </div>
-                    <div class="custom-control custom-switch">
-                        <input type="checkbox" class="custom-control-input" id="optionAdvancedTelemetrySwitch">
-                        <label class="custom-control-label" for="optionAdvancedTelemetrySwitch">Share detailed usage data</label>
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input" id="optionAdvancedTelemetrySwitch">
+                        <label class="form-check-label" for="optionAdvancedTelemetrySwitch">Share detailed usage data</label>
                         <p>
                             This shares detailed data about your usage of this tool. The data collected may contain personally identifiable information such as the ATEM device name, camera labels, and network configurations. Ref:
                             <span id="telemetryIdentifier"></span>
@@ -123,14 +126,35 @@
                 <div id="qrcodeRegion"></div>
             </div>
         </div>
-        <div id="viewPi" class="view">
+        <div id="viewDevices" class="view">
             <div class="container">
-                <h1 class="viewTitle">Pi Listeners</h1>
-                <button class="btn btn-primary" id="btnRescanNetworkPi">
-                    Refresh Devices
-                </button>
-                <div id="piDeviceList">
+                <h1 class="viewTitle">Devices</h1>
 
+                <button id="btnAddDeviceModal" type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAddDevice">
+                    Add Device
+                </button>
+                <div id="deviceList">
+
+                </div>
+
+                <!-- Modal -->
+                <div class="modal fade" id="modalAddDevice" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="modalAddDeviceBackdropLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-scrollable">
+                        <div class="modal-content needs-validation" id="modalAddDeviceForm">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5" id="modalAddDeviceBackdropLabel">Add Devices</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body" id="modalAddDeviceContent">
+                                <div id="modalAddDeviceDiscovered"></div>
+                                <div id="modalAddDeviceManual"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" id="modalAddDeviceSubmit" class="btn btn-primary">Add</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -139,7 +163,7 @@
                 <h1 class="viewTitle">About</h1>
                 <p id="appVersion"></p>
                 <p>
-                    &copy; 2020 Design Shift Consulting<br>
+                    &copy; 2023 Design Shift Consulting<br>
                     <a href="https://designshift.ca/apps/atem-tally/">designshift.ca</a>
                 </p>
                 <p>
@@ -156,12 +180,11 @@
             </div>
         </div>
     </div>
-    <script>
-        let $ = require('jquery');
-        require('popper.js')
-        require('bootstrap')
-    </script>
-    <script src="./content/js/mainUI.js"></script>
+
+    <script src="./node_modules/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="./node_modules/jquery/dist/jquery.min.js"></script>
+    <script src="./node_modules/qrcode/build/qrcode.js"></script>
+    <script src="./content/js/mainUI.js" type="module"></script>
 </body>
 
 </html>

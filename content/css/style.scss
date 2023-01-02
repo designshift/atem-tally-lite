@@ -8,6 +8,30 @@ p, span, h1, h2 {
     user-select: none;
 }
 
+:root {
+    .navbar {
+        --bs-navbar-padding-x: 1rem;
+        --bs-navbar-padding-y: 0.5rem;
+    }
+    .toast {
+        --bs-toast-color: #333333;
+    }
+    .modal-content {
+        --bs-modal-color: #D8DCDF;
+        --bs-modal-bg: #343a40;
+        --bs-modal-header-border-color: #4d545a;
+        --bs-modal-footer-border-color: #4d545a;
+    }
+    .list-group {
+        --bs-list-group-bg: #343a40;
+        --bs-list-group-color: #D8DCDF;
+    }
+}
+
+.navbar {
+    background: #343a40;
+}
+
 .viewport-frame {
     padding-top: 56px;
     height: 100vh;
@@ -120,9 +144,14 @@ input[type='color'] {
         font-weight: bold;
         left: 50%;
         position: absolute;
+        text-align: center;
         text-shadow: 0px 3px 3px rgba(20, 20, 20, 0.3);
         top: 50%;
         transform: translateX(-50%) translateY(-50%);
+        width: 100%;
+        &.small {
+            font-size: 36px;
+        }
     }
     .tallyCameraLabel {
         bottom: 5%;
@@ -132,20 +161,8 @@ input[type='color'] {
     }
 }
 
-#piDeviceList {
+#deviceList {
     margin: 1rem 0;
-}
-
-.pi-device-row {
-    padding-top: 0.4rem;
-    padding-bottom: 0.4rem;
-    .pi-device-identify-link {
-        margin-left: 1rem;
-        cursor: pointer;
-    }
-    .pi-device-camera-selection {
-        float: right;
-    }
 }
 
 .update-banner {
@@ -153,8 +170,7 @@ input[type='color'] {
     bottom: 1em;
     left: 1em;
     a {
-        margin-left: 1em;
-        margin-right: 3em;
+        display: block;
     }
 }
 

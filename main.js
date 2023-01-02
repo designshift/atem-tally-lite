@@ -1,91 +1,87 @@
-const { app, BrowserWindow, ipcMain } = require('electron');
-const AtemSocketServer = require('./models/atemSocketServer');
-const os = require('os');
-const config = require('./config');
-const windowStateKeeper = require('electron-window-state');
-const pjson = require('./package.json');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const TallyServer = require('./models/tallyServer');
+const AtemController = require('./models/atemController');
+const Network = require('./models/network');
+const Updates = require('./models/updateController');
+const DeviceController = require('./models/deviceController');
+const Telemetry = require('./models/telemetryMain.js');
+const SettingsStore = require('./models/settingsStore.js');
 
-const appInsights = require("applicationinsights");
-const { telemetryTypeToBaseType } = require('applicationinsights/out/Declarations/Contracts');
+const os = require('os')
+const path = require('path')
+const config = require('./config')
+const windowStateKeeper = require('electron-window-state')
+const pjson = require('./package.json')
 
-if (config && config.appInsightKey)
-    appInsights.setup(config.appInsightKey)
-    .setAutoDependencyCorrelation(false)
-    .setAutoCollectRequests(false)
-    .setAutoCollectPerformance(false, false)
-    .setAutoCollectExceptions(true)
-    .setAutoCollectDependencies(false)
-    .setAutoCollectConsole(false, false)
-    .setUseDiskRetryCaching(false)
-    .setSendLiveMetrics(false)
-    .setDistributedTracingMode(appInsights.DistributedTracingModes.AI)
-    .start();
+const { MAX_BYTES_ON_DISK } = require('applicationinsights/out/Library/Sender')
 
-let client = appInsights.defaultClient;
-client.trackEvent({ name: "app_launch", properties: { type: os.type(), release: os.release(), platform: os.platform(), version: pjson.version } });
+let telemetry = new Telemetry((config && config.appInsightKey) ? config.appInsightKey : null);
+telemetry.registerHandlers();
+global.telemetry = telemetry;
 
-let atemSocketServer = new AtemSocketServer();
-atemSocketServer.startServer();
-global.socketServer = atemSocketServer;
+telemetry.trackEvent({ name: "app_launch", properties: { type: os.type(), release: os.release(), platform: os.platform(), version: pjson.version } });
 
-ipcMain.on('update_tally', (event, arg) => {
-    let msg = arg;
-    global.socketServer.updateTally(
-        msg.previewSourceIds,
-        msg.programSourceIds,
-        msg.availableCameras
-    );
-});
+let tallyServer = new TallyServer();
+tallyServer.startServer();
 
-ipcMain.on('stop_tally', (event, arg) => {
-    let msg = arg;
-    console.log(msg);
-    global.socketServer.stopTally(msg);
-});
+let atemController = new AtemController();
+atemController.init(tallyServer);
 
-ipcMain.on('call', (event, arg) => {
-    global.socketServer.callAll();
-});
-ipcMain.on('set_remote', (event, arg) => {
-    let msg = arg;
-    global.socketServer.setRemote(msg);
-});
+let deviceController = new DeviceController();
+deviceController.init(tallyServer);
 
-ipcMain.on('enable_advanced_telemetry', (event, arg) => {
-    appInsights.setAutoCollectConsole(true, true);
-    appInsights.setAutoCollectRequests(true);
-});
+// IPC network manager
+let network = new Network();
 
-ipcMain.on('disable_advanced_telemetry', (event, arg) => {
-    appInsights.setAutoCollectConsole(false, false);
-    appInsights.setAutoCollectRequests(false);
-});
+// IPC settings store
+let settings = new SettingsStore();
 
-function createWindow() {
+// IPC version checker
+let updates = new Updates(pjson.version);
+
+async function createWindow() {
 
     let mainWindowState = windowStateKeeper({
         defaultWidth: 1000,
         defaultHeight: 800
     });
 
-    let win = new BrowserWindow({
+    let prepath = path.join(`${__dirname}`, 'preload.js');
+
+    win = new BrowserWindow({
         'x': mainWindowState.x,
         'y': mainWindowState.y,
         'width': mainWindowState.width,
         'height': mainWindowState.height,
+
         webPreferences: {
-            nodeIntegration: true
+            nodeIntegration: true,
+            nodeIntegrationInWorker: true,
+            contextIsolation: true,
+            preload: prepath
         }
     })
 
-    win.loadFile('index.html')
+    atemController.registerHandlers(win);
+    deviceController.registerHandlers(win);
+
+    await win.loadFile('index.html')
     win.setMenu(null);
-    // win.webContents.openDevTools();
+    // win.webContents.openDevTools({ "mode": "detach" });
 
     mainWindowState.manage(win);
+
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+    createWindow();
+
+    app.on('activate', () => {
+        if (BrowserWindow.getAllWindows().length === 0) {
+            createWindow()
+        }
+    })
+})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -93,8 +89,11 @@ app.on('window-all-closed', () => {
     }
 })
 
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow()
-    }
+ipcMain.handle('app:version', () => {
+    return pjson.version
+})
+
+ipcMain.handle('app:open-url', (event, url) => {
+    telemetry.trackEvent('nav_ext', { url: url })
+    require('electron').shell.openExternal(url);
 })

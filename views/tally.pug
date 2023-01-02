@@ -20,8 +20,8 @@ html
             .mobileSettingsViewContainer
                 .row
                     .form-group.col-sm
-                        label.navbar-text(for="cameraSelection") Camera
-                        select.form-control#cameraSelection
+                        label.navbar-text(for="inputCameraSelection") Camera
+                        select.form-control#inputCameraSelection
                 .row
                     .form-group.col-sm
                         label.navbar-text(for="btnProgramColor") Program Color
@@ -34,11 +34,11 @@ html
                         button.btn.btn-primary#btnMobileCloseSettings(type="button",aria-label="close")
                             span(aria-hidden="true") Save
             
-    link(rel="stylesheet", href="/css/bootstrap.min.css")
+    link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
     link(rel="stylesheet", href="/css/style.min.css")
 
 
-    script(src="/js/socket.io.js")
+    script(src="/socketio/socket.io.js")
     script(src="/jquery/jquery.min.js")
     script(src="/nosleep/NoSleep.min.js")
     script(src="/jscookie/js.cookie.js")
@@ -50,7 +50,6 @@ html
         var noSleep = new NoSleep();
 
         function updateTallyColor() {
-            console.log("updating color")
             $('.tally').css('background', '#333333'); // Reset all to black first
             $(".tally[data-tally-state='preview']").css('background', getPreviewColor());
             $(".tally[data-tally-state='program']").css('background', getProgramColor());
@@ -61,18 +60,17 @@ html
         function bindCameraButtons() {
             $('.tally-multi').click(function(cam) {
                 var sid = $(this).data('sid');
-                $('#cameraSelection').val(sid);
-                $('#cameraSelection').change();
+                $('#inputCameraSelection').val(sid);
+                $('#inputCameraSelection').change();
             });
             $('.tally-single').click(function(cam) {
-                $('#cameraSelection').val("ALL");
-                $('#cameraSelection').change();
+                $('#inputCameraSelection').val("ALL");
+                $('#inputCameraSelection').change();
             });
         }
 
 
         function updateTally() {
-            console.log("Updating UI");
             $("#viewTallyRenderer").html('');
             $("#viewTallyRenderer").removeClass('viewSingleTally viewMultiTally');
 
@@ -82,10 +80,10 @@ html
                     $.each(lastUpdate.availableCameras, function(key, value) {
                         $("#viewTallyRenderer").append($('<div/>',{
                             class: "tally tally-multi",
-                            'data-sid': value.sourceID,
-                            'data-cid': value.sourceID.split('_')[1],
-                            'data-tally-state': (lastUpdate.programSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'program' : ((lastUpdate.previewSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'preview': 'inactive'),
-                            'data-abbreviation': value.abbreviation,
+                            'data-sid': value.id,
+                            'data-cid': value.id,
+                            'data-tally-state': (lastUpdate.programSourceIds.includes(parseInt(value.id))) ? 'program' : ((lastUpdate.previewSourceIds.includes(parseInt(value.id))) ? 'preview': 'inactive'),
+                            'data-abbreviation': value.shortName,
                             'data-name': value.name
                         }))
                     });
@@ -93,17 +91,43 @@ html
                         $(obj).append('<span class="tallyCameraId">' + $(obj).attr('data-cid') + '</span>');
                         $(obj).append('<span class="tallyCameraLabel">' + $(obj).attr('data-abbreviation') + '</span>');
                     });
+                    $("#viewTallyRenderer").append($('<div/>',{
+                        class: "tally tally-multi tally-stream",
+                        'data-sid': 'stream',
+                        'data-cid': 'stream',
+                        'data-tally-state': (lastUpdate.streamState) ? 'program' : 'inactive',
+                        'data-abbreviation': 'ON AIR',
+                        'data-name': 'Stream'
+                    }))
+                    $('.tally-stream').each(function(i, obj) {
+                        $(obj).append('<span class="tallyCameraId small">' + $(obj).attr('data-abbreviation') + '</span>');
+                        $(obj).append('<span class="tallyCameraLabel">' + $(obj).attr('data-name') + '</span>');
+                    });
                 }
+            } else if (camSelection === "stream") {
+                $("#viewTallyRenderer").addClass('viewSingleTally');
+                $("#viewTallyRenderer").append($('<div/>',{
+                    class: "tally tally-single",
+                    'data-sid': 'stream',
+                    'data-cid': 'stream',
+                    'data-tally-state': (lastUpdate.streamState) ? 'program' : 'inactive',
+                    'data-abbreviation': 'ON AIR',
+                    'data-name': 'Stream'
+                }))
+                $('.tally-single').each(function(i, obj) {
+                    $(obj).append('<span class="tallyCameraId small">' + $(obj).attr('data-abbreviation') + '</span>');
+                    $(obj).append('<span class="tallyCameraLabel">' + $(obj).attr('data-name') + '</span>');
+                });
             } else {
                 $("#viewTallyRenderer").addClass('viewSingleTally');
                 $.each(lastUpdate.availableCameras, function(key, value) {
-                    if (camSelection == value.sourceID) {
+                    if (camSelection == value.id) {
                         $("#viewTallyRenderer").append($('<div/>',{
                             class: "tally tally-single",
-                            'data-sid': value.sourceID,
-                            'data-cid': value.sourceID.split('_')[1],
-                            'data-tally-state': (lastUpdate.programSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'program' : ((lastUpdate.previewSourceIds.includes(parseInt(value.sourceID.split('_')[1]))) ? 'preview': 'inactive'),
-                            'data-abbreviation': value.abbreviation,
+                            'data-sid': value.id,
+                            'data-cid': value.id,
+                            'data-tally-state': (lastUpdate.programSourceIds.includes(parseInt(value.id))) ? 'program' : ((lastUpdate.previewSourceIds.includes(parseInt(value.id))) ? 'preview': 'inactive'),
+                            'data-abbreviation': value.shortName,
                             'data-name': value.name
                         }))
                     }
@@ -118,16 +142,16 @@ html
             bindCameraButtons();
         }
         function setCamera() {
-            camSelection = $('#cameraSelection').val();
+            camSelection = $('#inputCameraSelection').val();
             window.location.hash = camSelection
-            Cookies.set('cameraSelection', camSelection);
+            Cookies.set('inputCameraSelection', camSelection);
             updateTally();
         }
         function getCamera() {
-            var camSelection = Cookies.set('cameraSelection');
+            var camSelection = Cookies.set('inputCameraSelection');
             if (!camSelection) {
                 camSelection = "ALL";
-                Cookies.set('cameraSelection', camSelection);
+                Cookies.set('inputCameraSelection', camSelection);
             }
             return camSelection;
         }
@@ -149,7 +173,7 @@ html
             var color = (Cookies.get('previewColor')) ? Cookies.get('previewColor') : previewColor;
             return color;
         }
-        $('#cameraSelection').change(() => { setCamera(); });
+        $('#inputCameraSelection').change(() => { setCamera(); });
         $('#btnProgramColor').change(() => { setProgramColor( $('#btnProgramColor').val() ); });
         $('#btnPreviewColor').change(() => { setPreviewColor( $('#btnPreviewColor').val() ); });
         $('#btnWakeLock').click(() => {noSleep.enable(); $('#btnWakeLock').hide()});
@@ -168,24 +192,32 @@ html
         });
         $(function () {
             var socket = io();
+            socket.on('connect', function() {
+                socket.emit('capability', {
+                    type: 'web',
+                    id: 'anon',
+                });
+            });
             socket.on('update_tally', function(msg) {
-                console.log(msg);
                 lastUpdate = msg;
-                $('#cameraSelection').html('');
-                $('#cameraSelection').append($('<option/>', {
+                $('#inputCameraSelection').html('');
+                $('#inputCameraSelection').append($('<option/>', {
                     value: "ALL",
                     text: "All Cameras",
                     selected: (camSelection != "ALL") ? false : true
                 }));
+                $('#inputCameraSelection').append($('<option/>', {
+                    value: "stream",
+                    text: "Streaming Status",
+                    selected: (camSelection != "stream") ? false : true
+                }));
                 $.each(msg.availableCameras, function(key, value) {
-                    console.log(value);
-                    $('#cameraSelection').append($('<option/>', {
-                        value: value.sourceID,
-                        text: value.name + " (" + value.abbreviation + " - " + value.interface + ")",
-                        selected: (camSelection == value.sourceID) ? true : false
+                    $('#inputCameraSelection').append($('<option/>', {
+                        value: value.id,
+                        text: value.name + " (" + value.shortName + " - " + value.interface + ")",
+                        selected: (camSelection == value.id) ? true : false
                     }));
                 })
                 updateTally();
-                bindCameraButtons();
             })
         });

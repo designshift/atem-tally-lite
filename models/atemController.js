@@ -4,22 +4,29 @@ const events = require('events').EventEmitter;
 const bonjour = require('bonjour')();
 const util = require('util');
 const { Atem } = require('atem-connection');
-const AtemExtPortType = require('atem-connection').Enums.ExternalPortType;
-const { ipcRenderer } = require('electron');
+const ExternalPortType = require('atem-connection').Enums.ExternalPortType;
+const InternalPortType = require('atem-connection').Enums.InternalPortType;
+
+const { ipcMain } = require('electron');
+const { ajaxTransport } = require('jquery');
+
 util.inherits(AtemController, events);
 
 module.exports = AtemController;
 
 function AtemController() {
     events.EventEmitter.call(this);
-    this.devices = [];
-    this.manualDeviceIp = null;
-    this.activeatem = new Atem({ externalLog: console.log });
-    this.activeip = '';
-    this.availableCameras = [];
-    this.previewSourceIds = [];
-    this.programSourceIds = [];
-    this.searchState = 0;
+    this.win = null;
+    this.tallyServer = null;
+    this.devices = new Array()
+    this.manualDeviceIp = null
+    this.device = new Atem()
+    this.activeip = ''
+    this.availableCameras = new Array()
+    this.previewInputs = new Array()
+    this.programInputs = new Array()
+    this.searchState = 0
+    this.connected = false;
     this.searchOptions = {
         type: "blackmagic",
         txt: {
@@ -27,199 +34,228 @@ function AtemController() {
         }
     };
 
-    return this.activedevice;
+    return this
 }
 
-AtemController.prototype.updateDeviceList = function(callback) {
+AtemController.prototype.init = function(tallyServer) {
+    this.tallyServer = tallyServer;
+}
+
+/**
+ * Search the network for ATEM devices
+ * @returns An array of ATEM devices. Null when search is running.
+ */
+AtemController.prototype.searchNetwork = async function() {
     let self = this;
+    let results = [];
 
-    // Clear full device list
-    self.devices = [];
-    self.searchState = 1;
-    self.emit('device_search_start');
-
-    // Search the network for ATEM switcher devices
-    let browser = bonjour.find(self.searchOptions, function(s) {
-        console.log(s);
-        self.devices.push(s)
-        self.emit('device_list_update');
-    });
-
-    // Stop the search after 15 seconds
-    setTimeout(function() {
-        browser.stop();
+    if (self.searchState === 1) {
+        return null;
+    } else {
         self.searchState = 1;
+        self.emit('device_search_start');
+
+        let browser = bonjour.find(self.searchOptions, function(s) {
+            results.push(s)
+            self.emit('device_list_update');
+        });
+
+        // Stop the search after 5 seconds
+        await new Promise(resolve => setTimeout(resolve, 5000));
+
+        browser.stop();
+        self.searchState = 0;
+        self.devices = results;
         self.emit('device_search_stop');
-        callback(null, self.devices);
-    }, 5000);
-    return;
+
+        global.telemetry.trackAdvancedEvent("atem_network_discovered", { deviceCount: results.length, devices: results });
+        return self.devices;
+    }
 }
 
-AtemController.prototype.selectDevice = function(ip) {
+AtemController.prototype.connect = function(ip) {
     var self = this;
-    // self.activeatem.ip = ip;
+    // self.device.ip = ip;
 
     self.activeip = ip;
-    self.activeatem.connect(ip);
-    self.activeatem.on('connected', function() {
+    self.availableCameras = new Array()
 
-    });
-
-    self.availableCameras = new Array();
-
-    self.activeatem.on('stateChanged', function(state, path) {
-        var previewEnabled = [];
-        var programEnabled = [];
-        switch (path) {
-            case 'reconnect':
-                self.onAtemDisconnection();
-                break;
-            case 'info':
-                self.onAtemConnection();
-
-                // Repopulate camera list
-                var inputs = self.activeatem.state.inputs;
-
-                if (inputs) {
-                    Object.keys(inputs).forEach(function(key) {
-                        var input = inputs[key];
-                        if (input.isExternal && input.internalPortType == 0) {
-                            self.availableCameras["SID_" + input.inputId] = {
-                                id: input.inputId,
-                                name: input.longName,
-                                abbreviation: input.shortName,
-                                interface: AtemExtPortType[input.externalPortType]
-                            }
-                        }
-
-                    });
-                    self.emit('update_cameras');
-                }
-                telemetry.trackAdvancedEvent("atem_device_info", { device: state });
-            case 'video.ME.0.fadeToBlack':
-
-
-                // video.ME.0.fadeToBlack for FTB
-
-            default:
-                // console.log(state.video.ME[0].previewInput);
-                if (path.split('.')[0] != 'info') {
-                    console.log(state);
-                    console.log(path);
-                }
-
-                if ((path.split('.')[0] == 'video' || (path == 'info' && self.activeatem.state.inputs)) && state.video.ME[0]) {
-                    if (state.video.ME[0].inTransition) {
-                        programEnabled.push(state.video.ME[0].programInput);
-                        programEnabled.push(state.video.ME[0].previewInput);
-
-                        Object.keys(state.video.ME).forEach(function(meKey) {
-                            Object.keys(state.video.ME[meKey].upstreamKeyers).forEach(function(kKey) {
-                                if (state.video.ME[meKey].transitionProperties.selection & (1 << (kKey + 1)) || state.video.ME[meKey].upstreamKeyers[kKey].onAir)
-                                    programEnabled.push(state.video.ME[meKey].upstreamKeyers[kKey].fillSource);
-                            })
-                        });
-                    } else {
-                        previewEnabled.push(state.video.ME[0].previewInput);
-                        programEnabled.push(state.video.ME[0].programInput);
-
-                        Object.keys(state.video.ME).forEach(function(meKey) {
-                            Object.keys(state.video.ME[meKey].upstreamKeyers).forEach(function(kKey) {
-                                if (state.video.ME[meKey].upstreamKeyers[kKey].onAir)
-                                    programEnabled.push(state.video.ME[meKey].upstreamKeyers[kKey].fillSource);
-                            })
-                        });
-                    }
-
-                    Object.keys(state.video.ME).forEach(function(meKey) {
-                        for (var i = 1; i < 4; i++) {
-                            if (state.video.ME[meKey].transitionProperties.selection & (1 << i) && state.video.ME[meKey].upstreamKeyers[i - 1]) {
-                                previewEnabled.push(state.video.ME[meKey].upstreamKeyers[i - 1].fillSource);
-                            }
-                        }
-                    });
-
-                    Object.keys(state.video.downstreamKeyers).forEach(function(dsKey) {
-                        if (state.video.downstreamKeyers[dsKey] && (state.video.downstreamKeyers[dsKey].onAir || state.video.downstreamKeyers[dsKey].inTransition))
-                            programEnabled.push(state.video.downstreamKeyers[dsKey].sources.fillSource);
-                    });
-
-                    previewEnabled.push(state.video.ME[0].previewInput);
-                    programEnabled.push(state.video.ME[0].programInput);
-
-                    self.onAtemPreviewChange(previewEnabled);
-                    self.onAtemProgramChange(programEnabled);
-                }
-
-                break;
-        }
-    });
-
-    self.activeatem.on('disconnected', function() {
-        self.onAtemDisconnection();
-    });
+    self.device.connect(ip);
+    self.device.on('connected', () => { self.onConnect() });
+    self.device.on('disconnected', () => { self.onDisconnect() });
+    self.device.on('stateChanged', (state, path) => { self.onChange(state, path) });
 }
 
-AtemController.prototype.disconnectDevice = function() {
+AtemController.prototype.disconnect = function() {
     var self = this;
-    console.log("Clearing cameras");
-    self.availableCameras = [];
-    self.activeatem.disconnect();
+    self.device.disconnect();
 }
 
 AtemController.prototype.getAtemDeviceType = function(sourceId) {
     var self = this;
-    self.activeatem.getSourceInfio(sourceId).type;
+    self.device.getSourceInfio(sourceId).type;
 }
 
-AtemController.prototype.onAtemConnection = function() {
+AtemController.prototype.getStreamState = function() {
     var self = this;
-    self.emit('connect');
+    // Connecting: 2
+    // Idle: 1
+    // Stopping: 32
+    // Streaming: 4
+    return (self.device.state && self.device.state.streaming && self.device.state.streaming.status.state != 1);
 }
 
-AtemController.prototype.onAtemDisconnection = function() {
+AtemController.prototype.calcInputState = function() {
+
+    var self = this;
+    self.previewInputs = [];
+    self.programInputs = [];
+    Object.keys(self.device.state.video.mixEffects).forEach(function(m) {
+        var ME = self.device.state.video.mixEffects[m];
+
+        if (ME.transitionPosition.inTransition) {
+            self.programInputs.push(...self.device.listVisibleInputs("preview", ME.index));
+            self.programInputs.push(...self.device.listVisibleInputs("program", ME.index));
+        } else {
+            self.previewInputs.push(...self.device.listVisibleInputs("preview", ME.index));
+            self.programInputs.push(...self.device.listVisibleInputs("program", ME.index));
+        }
+    })
+
+    self.previewInputs = self.previewInputs.filter(function(el) {
+        return !self.programInputs.includes(el);
+    });
+
+    self.previewInputs = [...new Set(self.previewInputs)];
+    self.programInputs = [...new Set(self.programInputs)];
+}
+
+/**
+ * Refresh camera labels
+ * @param {*} self 
+ */
+AtemController.prototype.refreshCameraLabels = function(self) {
+    self.availableCameras = [];
+    if (self.device.state.inputs) {
+        Object.keys(self.device.state.inputs).forEach(function(key) {
+            var input = self.device.state.inputs[key];
+            if (input.internalPortType == InternalPortType.External) {
+                self.availableCameras.push({
+                    id: input.inputId,
+                    name: input.longName,
+                    shortName: input.shortName,
+                    interface: ExternalPortType[input.externalPortType]
+                });
+            }
+        });
+        self.emit('update_cameras');
+    }
+}
+
+AtemController.prototype.onConnect = function() {
+    this.emit('connect');
+    this.refreshCameraLabels(this);
+    this.calcInputState();
+    this.connected = true;
+
+    if (this.win) {
+        this.win.webContents.send('atem:onconnect', this.createIPCMessage());
+        this.win.webContents.send('atem:onupdate', this.createIPCMessage());
+    }
+
+    if (this.tallyServer)
+        this.tallyServer.sendTally(this.createIPCMessage())
+
+    try { global.telemetry.trackAdvancedEvent("atem_device_info", { device: this.device.state }); } catch (e) {}
+
+}
+
+AtemController.prototype.onDisconnect = function(state) {
     var self = this;
     self.emit('disconnect');
-    self.previewSourceIds = [];
-    self.programSourceIds = [];
-    self.availableCameras = [];
+    self.previewInputs = [];
+    self.programInputs = [];
+    self.availableCameras = new Array();
+    self.connected = false;
+
+    if (this.win) {
+        self.win.webContents.send('atem:ondisconnect', {});
+    }
+
+    try { global.telemetry.trackAdvancedEvent("atem_device_disconnection", {}) } catch (e) {}
 }
 
-AtemController.prototype.onAtemPreviewChange = function(sourceIds) {
+/**
+ * Process the state change and trigger message to renderer
+ * @param {*} state 
+ * @param {*} paths 
+ */
+AtemController.prototype.onChange = function(state, paths) {
     var self = this;
-    console.log("Preview changed to ");
-    console.log(sourceIds);
-    self.previewSourceIds = sourceIds;
+    self.emit('changed');
 
-    self.emit('preview_change');
-    self.onAtemAllChanges();
-}
+    Object.keys(paths).forEach(function(key) {
+        var path = paths[key];
+        switch (path.split('.')[0]) {
+            case 'inputs':
+                // Camera inputs changed
+                self.refreshCameraLabels(self);
+                self.emit('changed_input');
+                break;
+            case 'video':
+                // All ME changes
+                self.calcInputState();
+                self.emit('changed_video');
+                break;
+            case 'streaming':
+                // Streaming State Changes
+                self.emit('changed_stream');
+                break;
+        }
+    })
 
-AtemController.prototype.onAtemProgramChange = function(sourceIds) {
-    var self = this;
-    console.log("Program changed to ");
-    console.log(sourceIds);
-    self.programSourceIds = sourceIds;
+    if (self.win)
+        self.win.webContents.send('atem:onupdate', self.createIPCMessage());
 
-    self.emit('program_change');
-    self.onAtemAllChanges();
+    if (self.tallyServer)
+        self.tallyServer.sendTally(self.createIPCMessage())
 }
 
 AtemController.prototype.createIPCMessage = function() {
     var msg = {};
     var self = this;
 
-    msg.previewSourceIds = self.previewSourceIds;
-    msg.programSourceIds = self.programSourceIds;
+    msg.previewSourceIds = self.previewInputs;
+    msg.programSourceIds = self.programInputs;
     msg.availableCameras = self.availableCameras;
-
+    msg.streamState = self.getStreamState();
+    msg.connected = self.connected;
     return msg;
 }
 
-AtemController.prototype.onAtemAllChanges = function() {
-    var self = this;
-    var msg = self.createIPCMessage();
+// AtemController.prototype.onAtemAllChanges = function() {
+//     var self = this;
 
-    self.emit('camera_change');
-    ipcRenderer.send('update_tally', msg);
+//     // var msg = self.createIPCMessage();
+
+//     // self.emit('camera_change');
+//     // ipcRenderer.send('update_tally', msg);
+// }
+
+AtemController.prototype.registerHandlers = function(win) {
+    var self = this;
+
+    ipcMain.handle('atem:connect', (event, ip) => { self.connect(ip); })
+    ipcMain.handle('atem:disconnect', (event) => { self.disconnect(); })
+    ipcMain.handle('atem:search', () => { return self.searchNetwork(); });
+    ipcMain.handle('atem:state', () => { return self.createIPCMessage(); });
+    // ipcMain.handle('atem:instance', (event) => { return readonly self; })
+
+    if (win) {
+        self.win = win
+        self.win.webContents.send('atem:onupdate', self.createIPCMessage());
+    } else {
+        console.error("No window registered");
+    }
+
 }
