@@ -41,13 +41,15 @@ class App {
         $("#inputManualIpaddress").hide();
 
         // Check for tally color setting from store
-        if (window.app.getStore('programColor')) {
-            self.programColor = await window.app.getStore('programColor');
+        let configProgramColor = await window.app.getStore('programColor')
+        let configPreviewColor = await window.app.getStore('previewColor')
+        if (configProgramColor) {
+            self.programColor = configProgramColor;
             $('#btnProgramColor').val(self.programColor);
         }
 
-        if (window.app.getStore('previewColor')) {
-            self.previewColor = await window.app.getStore('previewColor');
+        if (configPreviewColor) {
+            self.previewColor = configPreviewColor;
             $('#btnPreviewColor').val(self.previewColor);
         }
 
@@ -74,15 +76,17 @@ class App {
     }
 
     setProgramColor(hex) {
-        this.programColor = hex;
-        window.app.setStore('programColor', hex);
+        var self = this
+        self.programColor = hex;
         self.updateTallyColor();
+        window.app.setStore('programColor', hex);
     }
 
     setPreviewColor(hex) {
-        this.previewColor = hex;
-        window.app.setStore('previewColor', hex);
+        var self = this;
+        self.previewColor = hex;
         self.updateTallyColor();
+        window.app.setStore('previewColor', hex);
     }
 
     /**
@@ -163,9 +167,10 @@ class App {
      * Updates tally screen color based on user settings
      */
     updateTallyColor() {
+        let self = this;
         $('.tally').css('background', '#333333'); // Reset all to black first
-        $(".tally[data-tally-state='preview']").css('background', this.previewColor);
-        $(".tally[data-tally-state='program']").css('background', this.programColor);
+        $(".tally[data-tally-state='preview']").css('background', self.previewColor);
+        $(".tally[data-tally-state='program']").css('background', self.programColor);
     }
 
     /**

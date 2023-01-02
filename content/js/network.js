@@ -50,6 +50,10 @@ export class Network extends EventEmitter {
             id: 'qrcode-canvas'
         }));
 
+        if (!self.lastExtNetwork) {
+            self.lastExtNetwork = $('#portSelection').val()
+        }
+
         var canvas = document.getElementById('qrcode-canvas');
         QRCode.toCanvas(canvas, 'http://' + self.lastExtNetwork + ':3777/tally', { scale: 8 }, function(error) {
             if (error) console.error(error)
