@@ -3,10 +3,12 @@ html
   head
     title= title
     meta(name='viewport',content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0')
+    link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
+    link(rel="stylesheet", href="/css/style.min.css")
   body
-    nav.navbar-expand.fixed-top.navbar-dark.bg-dark.justify-content-between
+    nav.navbar.navbar-expand.fixed-top.navbar-dark.justify-content-between
         .camSelectArea
-            button.btn.btn-secondary#btnMobileSettings Settings
+            button.btn.btn-secondary#btnMobileSettings(type="button",data-bs-toggle="modal",data-bs-target="#modalMobileSettings") Settings
             button.btn.btn-link#btnWakeLock Keep Screen On
 
 
@@ -14,37 +16,45 @@ html
         .view#viewTally
             #viewTallyRenderer
 
-    section.mobileSettings(style="display:none;")
-        .mobileSettingsViewBg
-        .mobileSettingsView
-            .mobileSettingsViewContainer
-                .row
-                    .form-group.col-sm
-                        label.navbar-text(for="inputCameraSelection") Camera
-                        select.form-control#inputCameraSelection
-                .row
-                    .form-group.col-sm
-                        label.navbar-text(for="btnProgramColor") Program Color
-                        input.form-control#btnProgramColor(type="color",value="#FF0000")
-                    .form-group.col-sm
-                        label.navbar-text(for="btnPreviewColor") Preview Color
-                        input.form-control#btnPreviewColor(type="color",value="#00FF00")
+    section.modal.fade#modalMobileSettings(ds-bs-backdrop="static",data-bs-keyboard="false",tabindex="-1",aria-labelledby="modalMobileSettingsBackdropLabel",aria-hidden="true")
+        .modal-dialog.modal-dialog-scrollable 
+            .modal-content.needs-validation#modalMobileSettingsForm 
+                .modal-header 
+                    h1.modal-title.fs-5#modalMobileSettingsBackdropLabel Settings 
+                    button.btn-close(type="button",data-bs-dismiss="modal",aria-label="Close")
+                .modal-body#modalMobileSettingsContent 
+                    .row.mb-3
+                        .form-group.col-sm
+                            label.navbar-text(for="inputCameraSelection") Camera
+                            select.form-control#inputCameraSelection
+                    .row.mb-3
+                        .form-group.col-sm
+                            label.navbar-text(for="btnProgramColor") Program Color
+                            input.form-control#btnProgramColor(type="color",value="#FF0000")
+                        .form-group.col-sm
+                            label.navbar-text(for="btnPreviewColor") Preview Color
+                            input.form-control#btnPreviewColor(type="color",value="#00FF00")
 
-                .row
-                    .form-group.col-sm
-                        .form-check.form-switch 
-                            input.form-check-input#inputSettingsVibrate(type="checkbox",role="switch")
-                            label.form-check-label(for="inputSettingsVibrate") Vibrate on "Program" (Android Only)
+                    .row.mb-3
+                        .form-group.col-sm
+                            .form-check.form-switch 
+                                input.form-check-input#inputSettingsVibrate(type="checkbox",role="switch")
+                                label.form-check-label(for="inputSettingsVibrate") Vibrate on "Program" (Android Only)
+                .modal-footer 
+                    button.btn.btn-primary(type="button",data-bs-dismiss="modal") OK
+
+
+    //- section.mobileSettings(style="display:none;")
+    //-     .mobileSettingsViewBg
+    //-     .mobileSettingsView
+    //-         .mobileSettingsViewContainer
 
                 .row
                     .col-sm
                         button.btn.btn-primary#btnMobileCloseSettings(type="button",aria-label="close")
                             span(aria-hidden="true") Save
             
-    link(rel="stylesheet", href="/bootstrap/css/bootstrap.min.css")
-    link(rel="stylesheet", href="/css/style.min.css")
-
-
+    script(src="/bootstrap/js/bootstrap.bundle.min.js")
     script(src="/socketio/socket.io.js")
     script(src="/jquery/jquery.min.js")
     script(src="/nosleep/NoSleep.min.js")
@@ -56,11 +66,13 @@ html
         var previewColor = "#00FF00";
         var noSleep = new NoSleep();
         var vibrating = false;
+        var allowVibrate = false;
 
         function vibratePattern() {
-            if (!vibrating) {
+            if (allowVibrate && !vibrating) {
                 vibrating = true
                 window.navigator.vibrate([300,80,300])
+                setTimeout(() => {vibrating = false},1000)
             }
         }
 
@@ -135,11 +147,8 @@ html
                 });
             } else {
                 $("#viewTallyRenderer").addClass('viewSingleTally');
-                if ($('#inputSettingsVibrate').prop('checked') && lastUpdate.programSourceIds.includes(parseInt(camSelection))) {
+                if (lastUpdate.programSourceIds.includes(parseInt(camSelection))) {
                     vibratePattern()
-                } else {
-                    console.log("C")
-                    vibrating = false
                 }
                 $.each(lastUpdate.availableCameras, function(key, value) {
                     if (camSelection == value.id) {
@@ -187,6 +196,10 @@ html
             previewColor = color;
             updateTallyColor();
         }
+        function setVibrate() {
+            Cookies.set('allowVibrate', $('#inputSettingsVibrate').prop('checked'))
+            allowVibrate = $('#inputSettingsVibrate').prop('checked')
+        }
         function getProgramColor() {
             var color = (Cookies.get('programColor')) ? Cookies.get('programColor') : programColor;
             return color;
@@ -195,24 +208,20 @@ html
             var color = (Cookies.get('previewColor')) ? Cookies.get('previewColor') : previewColor;
             return color;
         }
-        $('#inputCameraSelection').change(() => { setCamera(); });
+        function getVibrate() {
+            var vibrate = (Cookies.get('allowVibrate')) ? Cookies.get('allowVibrate') : allowVibrate;
+            return vibrate;
+        }
+
+        $('#inputCameraSelection').change(() => { setCamera() })
+        $('#inputSettingsVibrate').change(() => { setVibrate() })
         $('#btnProgramColor').change(() => { setProgramColor( $('#btnProgramColor').val() ); });
         $('#btnPreviewColor').change(() => { setPreviewColor( $('#btnPreviewColor').val() ); });
         $('#btnWakeLock').click(() => {noSleep.enable(); $('#btnWakeLock').hide()});
-        $('#btnMobileSettings').click(() => {
-            $('.mobileSettings').css('display','block');
-        });
-        $('.mobileSettingsViewBg').click(() => {
-            $('.mobileSettings').css('display','none');
-            setProgramColor( $('#btnProgramColor').val() );
-            setPreviewColor( $('#btnPreviewColor').val() );
-        });
-        $('#btnMobileCloseSettings').click(() => {
-            $('.mobileSettings').css('display','none');
-            setProgramColor( $('#btnProgramColor').val() );
-            setPreviewColor( $('#btnPreviewColor').val() );
-        });
+
         $(function () {
+            $('#inputSettingsVibrate').prop('checked', getVibrate())
+
             var socket = io();
             socket.on('connect', function() {
                 socket.emit('capability', {

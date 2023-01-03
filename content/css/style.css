@@ -114,6 +114,12 @@ input[type=color]:active {
   height: 100%;
   width: 100%;
 }
+.tally.tally-single .tallyCameraId {
+  font-size: 50vh;
+}
+.tally.tally-single .tallyCameraId.small {
+  font-size: 30vh;
+}
 .tally.tally-multi {
   border-radius: 5px;
 }

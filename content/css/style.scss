@@ -125,6 +125,12 @@ input[type='color'] {
     &.tally-single {
         height: 100%;
         width: 100%;
+        .tallyCameraId {
+            font-size: 50vh
+        }
+        .tallyCameraId.small {
+            font-size: 30vh
+        }
     }
     &.tally-multi {
         border-radius: 5px;
