@@ -29,7 +29,7 @@ Building
     # Install dependencies
     npm install
     
-    # Install electron-packager globaly
+    # Install electron-packager globally
     npm install electron-packager -g
     
     # Run build script
